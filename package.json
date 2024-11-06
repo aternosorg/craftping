@@ -3,6 +3,7 @@
   "type": "module",
   "version": "1.0.0",
   "main": "index.js",
+  "repository": "github:aternosorg/craftping",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --rootDir ./test"
   },
