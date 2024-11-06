@@ -1,14 +1,14 @@
 {
-  "name": "query",
+  "name": "craftping",
   "type": "module",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --rootDir ./test"
   },
-  "keywords": [],
+  "keywords": ["minecraft", "ping", "query", "status", "protocol"],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "description": "",
   "devDependencies": {
     "@jest/globals": "^29.7.0",
