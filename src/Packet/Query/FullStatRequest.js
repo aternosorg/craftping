@@ -6,7 +6,7 @@ export default class FullStatRequest extends BasicStatRequest {
      */
     writePayload() {
         let buffer = Buffer.alloc(8);
-        buffer.writeUint32BE(this.challengeToken, 0);
+        buffer.writeInt32BE(this.challengeToken, 0);
         buffer.writeUint32BE(0, 4);
         return buffer;
     }
