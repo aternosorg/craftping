@@ -104,13 +104,16 @@ export default class LegacyStatus {
      */
     fromPre14String(string) {
         let parts = string.split("§");
-        if (parts.length !== 3) {
+        if (parts.length < 3) {
             throw new ProtocolError("Invalid legacy status string");
         }
 
-        this.motd = parts[0];
-        this.setPlayerCount(parseInt(parts[1]))
-            .setMaxPlayers(parseInt(parts[2]));
+        let maxPlayers = parseInt(parts.pop());
+        let playerCount = parseInt(parts.pop());
+        this.motd = parts.join("§");
+
+        this.setPlayerCount(playerCount)
+            .setMaxPlayers(maxPlayers);
         return this;
     }
 
