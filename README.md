@@ -66,7 +66,18 @@ let response = await client.pingLegacyPost14('localhost', 25565, {signal: AbortS
 let response = await client.pingLegacyPre14('localhost', 25565, {signal: AbortSignal.timeout(5000)});
 ```
 
-Both legacy ping versions will return a [`LegacyStatus`](src/JavaPing/Status/LegacyStatus.js) object.
+#### Ping a server that supports either of the two legacy ping versions
+Some custom server software seems to not respond to pre 1.4 pings, but will instead only respond to 1.4+ pings.
+The only currently known instance of this is Better Than Adventure. If you are trying to ping a server that may or 
+may not support pre 1.4 pings, you can use the following code:
+```js
+let response = await client.pingLegacyUniversal('localhost', 25565, {signal: AbortSignal.timeout(5000)});
+```
+
+Note that this weird hack involves sending the first half of a packet, then waiting for up to 500ms if the servers
+responds, and if it does not, sending the second half of the packet. It may therefore run into problems if the timing is off.
+
+All legacy ping versions will return a [`LegacyStatus`](src/JavaPing/Status/LegacyStatus.js) object.
 Note that for pre 1.4 pings, this object will not include the server version name and protocol version,
 as this information was not included in the response packets before Minecraft 1.4.
 

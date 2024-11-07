@@ -70,6 +70,41 @@ export default class JavaPing extends TCPSocket {
     }
 
     /**
+     * @param {PingOptions} options
+     * @return {Promise<LegacyStatus>}
+     */
+    async pingLegacyUniversal(options = {}) {
+        await this.write(Buffer.from([0xfe]));
+        this.signal?.throwIfAborted();
+
+        let usePost14 = false;
+        try {
+            await this.waitForData(1, AbortSignal.timeout(500));
+        } catch (e) {
+            usePost14 = true;
+        }
+        this.signal?.throwIfAborted();
+
+        if (usePost14) {
+            await this.write(Buffer.from([0x01]));
+            this.signal?.throwIfAborted();
+            await this.write(new LegacyPingHostPluginMessage()
+                .setProtocolVersion(options.protocolVersion ?? null)
+                .setHostname(options.hostname ?? this.address)
+                .setPort(options.port ?? this.port).write());
+            this.signal?.throwIfAborted();
+        }
+
+        let response = await this.readPacket(LegacyKick);
+        let message = response.getMessage();
+        if (message.startsWith("§1")) {
+            return new LegacyStatus().fromPost14String(response.getMessage());
+        } else {
+            return new LegacyStatus().fromPre14String(response.getMessage());
+        }
+    }
+
+    /**
      * Read the next packet from the socket
      *
      * @template {Packet} T

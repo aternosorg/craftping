@@ -123,4 +123,30 @@ export default class JavaPingClient {
         await ping.close();
         return response;
     }
+
+    /**
+     * Send a weird hybrid ping that can be understood by both pre 1.4 servers, and custom servers that
+     * somehow only support the 1.4 - 1.6 protocol
+     *
+     * Note that, in some cases, this may result in pre 1.4 servers logging error messages.
+     *
+     * @param {string} address
+     * @param {number} port
+     * @param {PingOptions} options
+     * @return {Promise<LegacyStatus>}
+     */
+    async pingLegacyUniversal(address, port, options = {}) {
+        [address, port] = await this.resolveSrv(address, port, options);
+        let ping = new JavaPing(address, port, options.signal);
+        await ping.connect();
+        let response;
+        try {
+            response = await ping.pingLegacyUniversal(options);
+        } catch (e) {
+            await ping.destroy();
+            throw e;
+        }
+        await ping.close();
+        return response;
+    }
 }

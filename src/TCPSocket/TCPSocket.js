@@ -149,9 +149,10 @@ export default class TCPSocket extends EventEmitter {
 
     /**
      * @param {number} length
+     * @param {?AbortSignal} signal
      * @return {Promise<Buffer>}
      */
-    waitForData(length) {
+    waitForData(length, signal = null) {
         if (this.waitForDataPromise !== null) {
             throw new NetworkError("Already waiting for data");
         }
@@ -163,6 +164,14 @@ export default class TCPSocket extends EventEmitter {
             this.resolveDataPromise();
             return promise.getPromise();
         }
+
+        signal?.addEventListener("abort", () => {
+            if (this.waitForDataPromise === promise) {
+                this.waitForDataPromise = null;
+                promise.reject(new NetworkError("Operation was aborted"));
+            }
+        });
+
         this.socket.resume();
         return promise.getPromise();
     }
