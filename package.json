@@ -1,16 +1,16 @@
 {
   "name": "craftping",
   "type": "module",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "index.js",
   "repository": "github:aternosorg/craftping",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --rootDir ./test"
   },
   "keywords": ["minecraft", "ping", "query", "status", "protocol"],
-  "author": "",
+  "author": "Kurt Thiemann <kurt@aternos.org>",
   "license": "MIT",
-  "description": "",
+  "description": "A universal ping/query library for Minecraft servers.",
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "jest": "^29.7.0"

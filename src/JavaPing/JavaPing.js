@@ -18,13 +18,12 @@ export default class JavaPing extends TCPSocket {
      */
     async ping(options = {}) {
         let time = BigInt(Date.now());
-        await this.write(Buffer.concat([
-            new Handshake()
-                .setProtocolVersion(options.protocolVersion ?? null)
-                .setHostname(options.hostname ?? this.address)
-                .setPort(options.port ?? this.port).write(),
-            new StatusRequest().write()
-        ]));
+        await this.write(new Handshake()
+            .setProtocolVersion(options.protocolVersion ?? null)
+            .setHostname(options.hostname ?? this.address)
+            .setPort(options.port ?? this.port).write());
+        this.signal?.throwIfAborted();
+        await this.write(new StatusRequest().write());
         this.signal?.throwIfAborted();
 
         let response = await this.readPacket(StatusResponse);
