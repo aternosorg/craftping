@@ -38,7 +38,7 @@ Note that the query client needs to be closed manually, since it keeps its UDP s
 The [Server List Ping protocol](https://wiki.vg/Server_List_Ping) is what the Minecraft client uses to show the server status in the in-game server list.
 This protocol changed multiple times over the years, so you'd ideally want to know the version of the server you are pinging to use the correct protocol version.
 
-If you do not know the server version, you can always use the pre 1.4 ping protocol, since all never versions seem to be backwards compatible as of now.
+If you do not know the server version, you can always use the pre 1.4 ping protocol, since all newer versions seem to be backwards compatible as of now.
 Finding the correct protocol should still be preferred, since pre 1.4 responses are missing a lot of information that is included in newer versions.
 It is also unclear if server software not based on the Vanilla server will respond to pre 1.4 pings.
 
