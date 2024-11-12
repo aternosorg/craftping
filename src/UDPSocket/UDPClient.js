@@ -103,6 +103,7 @@ export default class UDPClient extends EventEmitter {
         for (const promise of this.readQueue) {
             promise.reject(error ?? new NetworkError("Client was closed"));
         }
+        this.readQueue = [];
         return this;
     }
 
