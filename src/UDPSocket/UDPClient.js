@@ -1,138 +1,48 @@
-import {EventEmitter} from "node:events";
-import QueuedPromise from "../QueuedPromise.js";
-import NetworkError from "../Error/NetworkError.js";
+import UDPSocket from "./UDPSocket.js";
 
-export default class UDPClient extends EventEmitter {
+export default class UDPClient extends UDPSocket {
     /** @type {string} */ address;
     /** @type {number} */ port;
-    /** @type {UDPSocket} */ socket;
-    /** @type {UDPMessage[]} */ inboundQueue = []
-    /** @type {QueuedPromise<UDPMessage>[]} */ readQueue = [];
-    /** @type {?AbortSignal} */ signal;
-    /** @type {boolean} */ open = false;
 
     /**
      * @param {string} address
      * @param {number} port
-     * @param {UDPSocket} socket
      * @param {?AbortSignal} signal
+     * @param {import("node:dgram").SocketOptions} options
+     * @param {import("node:dgram").BindOptions} bindOptions
      */
-    constructor(address, port, socket, signal = null) {
-        super();
+    constructor(
+        address,
+        port,
+        signal = null,
+        options = {type: "udp4"},
+        bindOptions = {}
+    ) {
+        if (signal) {
+            options = Object.assign({}, options, {signal});
+        }
+
+        super(options, bindOptions);
         this.address = address;
         this.port = port;
-        this.socket = socket;
         this.signal = signal;
-        this.signal?.addEventListener("abort", this.handleAbort.bind(this));
     }
 
     /**
-     * @return {Promise<UDPClient>}
+     * @param {Packet} packet
+     * @return {Promise<void>}
      */
-    async connect() {
-        await this.socket.register(this);
-        this.open = true;
-        return this;
-    }
-
-    /**
-     * @return {this}
-     */
-    handleAbort() {
-        if (this.open) {
-            this.close(new NetworkError("Operation was aborted"));
-        }
-        return this;
-    }
-
-    /**
-     * @param {?Error} error
-     * @return {this}
-     */
-    close(error = null) {
-        this.emit("dispose", this);
-        this.handleClose(error);
-        this.removeAllListeners();
-        return this;
-    }
-
-    /**
-     * @param {UDPMessage} message
-     * @return {boolean}
-     */
-    appliesTo(message) {
-        return this.address === message.getAddress() && this.port === message.getPort();
-    }
-
-    /**
-     * @param {UDPMessage} message
-     * @return {this}
-     */
-    handleMessage(message) {
-        if (!this.appliesTo(message)) {
-            return this;
-        }
-
-        if (this.readQueue.length > 0) {
-            this.readQueue.shift().resolve(message);
-            return this;
-        }
-
-        this.inboundQueue.push(message);
-        return this;
-    }
-
-    /**
-     * @param {Error} error
-     * @return {UDPClient}
-     */
-    handleError(error) {
-        if (this.listenerCount("error") > 0) {
-            this.emit("error", error);
-        }
-        return this;
-    }
-
-    /**
-     * @param {?Error} error
-     * @return {this}
-     */
-    handleClose(error = null) {
-        this.open = false;
-        this.emit("close");
-        for (const promise of this.readQueue) {
-            promise.reject(error ?? new NetworkError("Client was closed"));
-        }
-        this.readQueue = [];
-        return this;
-    }
-
-    /**
-     * @param {Buffer} msg
-     * @return {Promise<this>}
-     */
-    async send(msg) {
-        await this.socket.send(msg, this.port, this.address);
-        return this;
-    }
-
-    /**
-     * @return {Promise<UDPMessage>}
-     */
-    read() {
-        if (this.inboundQueue.length > 0) {
-            return Promise.resolve(this.inboundQueue.shift());
-        }
-
-        let promise = new QueuedPromise();
-        this.readQueue.push(promise);
-        return promise.getPromise();
+    async sendPacket(packet) {
+        await this.send(packet.write(), this.port, this.address);
+        this.signal?.throwIfAborted();
     }
 
     /**
      * @return {Promise<Buffer>}
      */
     async readData() {
-        return (await this.read()).getData();
+        let message = await this.read();
+        this.signal?.throwIfAborted();
+        return message.getData();
     }
 }

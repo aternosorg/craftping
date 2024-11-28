@@ -1,7 +1,18 @@
-import UDPSocket from "../UDPSocket/UDPSocket.js";
 import Query from "./Query.js";
 
-export default class QueryClient extends UDPSocket {
+export default class QueryClient {
+    /** @type {import("node:dgram").SocketOptions}} */ socketOptions;
+    /** @type {import("node:dgram").BindOptions}} */ bindOptions;
+
+    /**
+     * @param {import("node:dgram").SocketOptions} socketOptions
+     * @param {import("node:dgram").BindOptions} bindOptions
+     */
+    constructor(socketOptions = {type: "udp4"}, bindOptions = {}) {
+        this.socketOptions = socketOptions;
+        this.bindOptions = bindOptions;
+    }
+
     /**
      * @param {string} address
      * @param {number} port
@@ -9,16 +20,16 @@ export default class QueryClient extends UDPSocket {
      * @return {Promise<BasicStatResponse>}
      */
     async queryBasic(address, port, signal = null) {
-        let query = new Query(address, port, this, signal);
-        await query.connect();
+        let query = new Query(address, port, signal, this.socketOptions, this.bindOptions);
+        await query.bind(signal);
         let result;
         try {
             result = await query.queryBasic();
         } catch (e) {
-            query.close();
+            await query.close();
             throw e;
         }
-        query.close();
+        await query.close();
         return result;
     }
 
@@ -29,16 +40,16 @@ export default class QueryClient extends UDPSocket {
      * @return {Promise<FullStatResponse>}
      */
     async queryFull(address, port, signal = null) {
-        let query = new Query(address, port, this, signal);
-        await query.connect();
+        let query = new Query(address, port, signal, this.socketOptions, this.bindOptions);
+        await query.bind(signal);
         let result;
         try {
             result = await query.queryFull();
         } catch (e) {
-            query.close();
+            await query.close();
             throw e;
         }
-        query.close();
+        await query.close();
         return result;
     }
 }

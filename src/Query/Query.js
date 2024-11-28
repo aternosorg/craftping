@@ -1,27 +1,14 @@
-import UDPClient from "../UDPSocket/UDPClient.js";
 import HandshakeRequest from "../Packet/Query/HandshakeRequest.js";
 import HandshakeResponse from "../Packet/Query/HandshakeResponse.js";
 import FullStatRequest from "../Packet/Query/FullStatRequest.js";
 import FullStatResponse from "../Packet/Query/FullStatResponse.js";
 import BasicStatRequest from "../Packet/Query/BasicStatRequest.js";
 import BasicStatResponse from "../Packet/Query/BasicStatResponse.js";
+import UDPClient from "../UDPSocket/UDPClient.js";
 
 export default class Query extends UDPClient {
     /** @type {number} */ sessionId;
     /** @type {number} */ challengeToken;
-
-    /**
-     * @inheritDoc
-     */
-    appliesTo(message) {
-        let data = message.getData();
-        if (data.byteLength < 5) {
-            return false;
-        }
-
-        let session = data.readUInt32BE(1);
-        return session === this.sessionId;
-    }
 
     /**
      * @return {Promise<this>}
@@ -30,7 +17,7 @@ export default class Query extends UDPClient {
         let handshakeRequest = new HandshakeRequest().generateSessionId();
         this.sessionId = handshakeRequest.getSessionId();
 
-        await this.send(handshakeRequest.write());
+        await this.sendPacket(handshakeRequest);
         this.signal?.throwIfAborted();
 
         let handshakeResponse = new HandshakeResponse().read(await this.readData());
@@ -44,10 +31,9 @@ export default class Query extends UDPClient {
     async queryBasic() {
         await this.handshake();
 
-        await this.send(new BasicStatRequest()
+        await this.sendPacket(new BasicStatRequest()
             .setSessionId(this.sessionId)
-            .setChallengeToken(this.challengeToken)
-            .write());
+            .setChallengeToken(this.challengeToken));
 
         this.signal?.throwIfAborted();
         return new BasicStatResponse().read(await this.readData());
@@ -59,10 +45,9 @@ export default class Query extends UDPClient {
     async queryFull() {
         await this.handshake();
 
-        await this.send(new FullStatRequest()
+        await this.sendPacket(new FullStatRequest()
             .setSessionId(this.sessionId)
-            .setChallengeToken(this.challengeToken)
-            .write());
+            .setChallengeToken(this.challengeToken));
 
         this.signal?.throwIfAborted();
         return new FullStatResponse().read(await this.readData());
