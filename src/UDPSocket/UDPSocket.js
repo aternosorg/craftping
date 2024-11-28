@@ -115,6 +115,9 @@ export default class UDPSocket extends EventEmitter {
 
     handleMessage(data, info) {
         let message = new UDPMessage(data, info);
+        if (!this.shouldAcceptPacket(message)) {
+            return this;
+        }
 
         if (this.readQueue.length > 0) {
             this.readQueue.shift().resolve(message);
@@ -165,5 +168,13 @@ export default class UDPSocket extends EventEmitter {
                 resolve(this);
             });
         });
+    }
+
+    /**
+     * @param {UDPMessage} packet
+     * @return {boolean}
+     */
+    shouldAcceptPacket(packet) {
+        return true
     }
 }
