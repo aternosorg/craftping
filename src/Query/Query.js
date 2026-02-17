@@ -11,13 +11,26 @@ export default class Query extends UDPClient {
     /** @type {number} */ challengeToken;
 
     /**
+     * @inheritDoc
+     */
+    appliesTo(message) {
+        let data = message.getData();
+        if (data.byteLength < 5) {
+            return false;
+        }
+
+        let session = data.readUInt32BE(1);
+        return session === this.sessionId;
+    }
+
+    /**
      * @return {Promise<this>}
      */
     async handshake() {
         let handshakeRequest = new HandshakeRequest().generateSessionId();
         this.sessionId = handshakeRequest.getSessionId();
 
-        await this.sendPacket(handshakeRequest);
+        await this.send(handshakeRequest.write());
         this.signal?.throwIfAborted();
 
         let handshakeResponse = new HandshakeResponse().read(await this.readData());
@@ -31,9 +44,10 @@ export default class Query extends UDPClient {
     async queryBasic() {
         await this.handshake();
 
-        await this.sendPacket(new BasicStatRequest()
+        await this.send(new BasicStatRequest()
             .setSessionId(this.sessionId)
-            .setChallengeToken(this.challengeToken));
+            .setChallengeToken(this.challengeToken)
+            .write());
 
         this.signal?.throwIfAborted();
         return new BasicStatResponse().read(await this.readData());
@@ -45,24 +59,12 @@ export default class Query extends UDPClient {
     async queryFull() {
         await this.handshake();
 
-        await this.sendPacket(new FullStatRequest()
+        await this.send(new FullStatRequest()
             .setSessionId(this.sessionId)
-            .setChallengeToken(this.challengeToken));
+            .setChallengeToken(this.challengeToken)
+            .write());
 
         this.signal?.throwIfAborted();
         return new FullStatResponse().read(await this.readData());
-    }
-
-    /**
-     * @inheritDoc
-     */
-    shouldAcceptPacket(packet) {
-        let data = packet.getData();
-        if (data.byteLength < 5) {
-            return false;
-        }
-
-        let session = data.readUInt32BE(1);
-        return session === this.sessionId;
     }
 }

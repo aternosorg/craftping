@@ -26,9 +26,13 @@ let client = new QueryClient();
 
 let basic = await client.queryBasic('localhost', 25565, AbortSignal.timeout(5000));
 let full = await client.queryFull('localhost', 25565, AbortSignal.timeout(5000));
+
+await client.close();
 ```
 Basic and full query requests will return a [`BasicStatResponse`](src/Packet/Query/BasicStatResponse.js) 
 and [`FullStatResponse`](src/Packet/Query/FullStatResponse.js) object respectively.
+
+Note that the query client needs to be closed manually, since it keeps its UDP socket open to reuse it for future queries.
 
 ### Java Edition Ping
 The [Server List Ping protocol](https://wiki.vg/Server_List_Ping) is what the Minecraft client uses to show the server status in the in-game server list.
@@ -94,5 +98,9 @@ import {BedrockPingClient} from 'craftping';
 let client = new BedrockPingClient();
 
 let status = await client.ping('localhost', 19132, AbortSignal.timeout(5000));
+
+await client.close();
 ```
 Pinging a Bedrock server will return an [`UnconnectedPong`](src/Packet/BedrockPing/UnconnectedPong.js) object.
+
+Note that the Bedrock ping client also needs to be closed manually, since it keeps its UDP socket open to reuse it for future requests.

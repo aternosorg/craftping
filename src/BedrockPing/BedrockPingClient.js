@@ -1,19 +1,7 @@
-import UDPSocket from "../UDPSocket/UDPSocket.js";
 import BedrockPing from "./BedrockPing.js";
+import SharedUDPSocket from "../UDPSocket/SharedUDPSocket.js";
 
-export default class BedrockPingClient {
-    /** @type {import("node:dgram").SocketOptions}} */ socketOptions;
-    /** @type {import("node:dgram").BindOptions}} */ bindOptions;
-
-    /**
-     * @param {import("node:dgram").SocketOptions} socketOptions
-     * @param {import("node:dgram").BindOptions} bindOptions
-     */
-    constructor(socketOptions = {type: "udp4"}, bindOptions = {}) {
-        this.socketOptions = socketOptions;
-        this.bindOptions = bindOptions;
-    }
-
+export default class BedrockPingClient extends SharedUDPSocket {
     /**
      * @param {string} address
      * @param {number} port
@@ -21,16 +9,16 @@ export default class BedrockPingClient {
      * @return {Promise<UnconnectedPong>}
      */
     async ping(address, port, signal = null) {
-        let ping = new BedrockPing(address, port, signal, this.socketOptions, this.bindOptions);
-        await ping.bind(signal);
+        let ping = new BedrockPing(address, port, this, signal);
+        await ping.connect();
         let result;
         try {
             result = await ping.ping();
         } catch (e) {
-            await ping.close();
+            ping.close();
             throw e;
         }
-        await ping.close();
+        ping.close();
         return result;
     }
 }

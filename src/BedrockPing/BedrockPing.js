@@ -7,6 +7,19 @@ export default class BedrockPing extends UDPClient {
     /** @type {BigInt} */ sessionId;
 
     /**
+     * @inheritDoc
+     */
+    appliesTo(message) {
+        let data = message.getData();
+        if (data.byteLength < 9) {
+            return false;
+        }
+
+        let timestamp = data.readBigInt64BE(1);
+        return timestamp === this.sessionId;
+    }
+
+    /**
      * @return {Promise<UnconnectedPong>}
      */
     async ping() {
@@ -14,24 +27,11 @@ export default class BedrockPing extends UDPClient {
         // to identify which reply belongs to which request.
         this.sessionId = crypto.randomBytes(8).readBigInt64BE();
         let startTime = BigInt(Date.now());
-        await this.sendPacket(new UnconnectedPing().setTime(this.sessionId).generateClientGUID());
+        await this.send(new UnconnectedPing().setTime(this.sessionId).generateClientGUID().write());
         this.signal?.throwIfAborted();
 
         // The time field in the response contains the session ID, but we replace it with the start time
         // in case anyone relies on the time field containing an actual timestamp.
         return new UnconnectedPong().read(await this.readData()).setTime(startTime);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    shouldAcceptPacket(packet) {
-        let data = packet.getData();
-        if (data.byteLength < 9) {
-            return false;
-        }
-
-        let timestamp = data.readBigInt64BE(1);
-        return timestamp === this.sessionId;
     }
 }

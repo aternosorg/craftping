@@ -65,4 +65,4 @@ export { default as TCPSocket } from "./src/TCPSocket/TCPSocket.js";
 // UDPSocket
 export { default as UDPClient } from "./src/UDPSocket/UDPClient.js";
 export { default as UDPMessage } from "./src/UDPSocket/UDPMessage.js";
-export { default as UDPSocket } from "./src/UDPSocket/UDPSocket.js";
+export { default as SharedUDPSocket } from "./src/UDPSocket/SharedUDPSocket.js";
