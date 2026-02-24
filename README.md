@@ -16,7 +16,7 @@ Note that only servers with the `server.properties` option `enable-query` set to
 The main advantage of the Query protocol over the ping protocol ist that it returns the
 full list of players on the server, not just a small sample. It does, however, also have a few disadvantages, 
 like the fact that servers will return broken response packets if the MOTD (or any other string) [contains null bytes](https://bugs.mojang.com/browse/MC-221987)
-or [some other special characters](https://bugs.mojang.com/browse/MC-231035).  
+or [some other special characters](https://bugs.mojang.com/browse/MC-231035) in versions before 1.21.11.  
 This library makes an effort to interpret these broken response packets correctly, but it is not always possible to do so.
 
 ```js
@@ -33,6 +33,23 @@ Basic and full query requests will return a [`BasicStatResponse`](src/Packet/Que
 and [`FullStatResponse`](src/Packet/Query/FullStatResponse.js) object respectively.
 
 Note that the query client needs to be closed manually, since it keeps its UDP socket open to reuse it for future queries.
+
+#### Query string encoding
+
+Since string encoding in query responses switched to UTF-8 in Minecraft 1.21.11, this library makes an effort to detect
+the correct encoding automatically.  
+- In full stat responses, this works pretty reliably based on the version field.
+- Basic stat responses do not include the server version, so the library has to make a guess based on the content of the string.
+If the whole string is valid UTF-8, it will be decoded as UTF-8. If it contains invalid UTF-8 sequences, it will be decoded as ISO-8859-1 instead.
+
+You can force the string encoding using the `useLegacyStringEncoding` option, where `true` will force ISO-8859-1 encoding and `false` will force UTF-8 encoding.
+By default, this option is set to `null`, which means that the library will try to detect the correct encoding automatically.
+
+```js
+let useLegacyStringEncoding = true; // true, false, or null
+let basic = await client.queryBasic('localhost', 25565, AbortSignal.timeout(5000), useLegacyStringEncoding);
+let full = await client.queryFull('localhost', 25565, AbortSignal.timeout(5000), useLegacyStringEncoding);
+```
 
 ### Java Edition Ping
 The [Server List Ping protocol](https://wiki.vg/Server_List_Ping) is what the Minecraft client uses to show the server status in the in-game server list.

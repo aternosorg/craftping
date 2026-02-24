@@ -61,4 +61,46 @@ test('Read and write FullStatResponse', async () => {
     expect(packet.getPlayers()).toEqual([]);
 });
 
+test.each([
+    ["UTF-8", false],
+    ["ISO-8859-1", true]
+])('Detect encoding %s in BasicStatResponse', async (name, useLegacyEncoding) => {
+    let buffer = new BasicStatResponse(useLegacyEncoding)
+        .setHostIp("12.34.56.78")
+        .setHostPort(1234)
+        .setMaxPlayers(123)
+        .setPlayerCount(12)
+        .setMap("example_map")
+        .setGameType("example_game_type")
+        .setMotd("Example MOTD § £")
+        .generateSessionId()
+        .write();
+
+    let packet = new BasicStatResponse().read(buffer);
+    expect(packet.getMotd()).toBe("Example MOTD § £");
+});
+
+test.each([
+    ["UTF-8", false, "1.21.11"],
+    ["ISO-8859-1", true, "1.12.2"]
+])('Detect encoding %s in FullStatResponse', async (name, useLegacyEncoding, version) => {
+    let buffer = new FullStatResponse(useLegacyEncoding)
+        .setHostIp("12.34.56.78")
+        .setHostPort(1234)
+        .setMaxPlayers(123)
+        .setPlayerCount(12)
+        .setMap("example_map")
+        .setGameType("example_game_type")
+        .setMotd("Example MOTD § £")
+        .setPlayers(["Player1", "Player2", "Player3"])
+        .setPlugins("ExamplePlugin1;ExamplePlugin2")
+        .setVersion(version)
+        .setGameId("EXAMPLE_GAME_ID")
+        .generateSessionId()
+        .write();
+
+    let packet = new FullStatResponse().read(buffer);
+    expect(packet.getMotd()).toBe("Example MOTD § £");
+});
+
 

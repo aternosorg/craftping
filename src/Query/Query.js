@@ -39,9 +39,10 @@ export default class Query extends UDPClient {
     }
 
     /**
+     * @param {?boolean} useLegacyStringEncoding
      * @return {Promise<BasicStatResponse>}
      */
-    async queryBasic() {
+    async queryBasic(useLegacyStringEncoding = null) {
         await this.handshake();
 
         await this.send(new BasicStatRequest()
@@ -50,13 +51,14 @@ export default class Query extends UDPClient {
             .write());
 
         this.signal?.throwIfAborted();
-        return new BasicStatResponse().read(await this.readData());
+        return new BasicStatResponse(useLegacyStringEncoding).read(await this.readData());
     }
 
     /**
+     * @param {?boolean} useLegacyStringEncoding
      * @return {Promise<FullStatResponse>}
      */
-    async queryFull() {
+    async queryFull(useLegacyStringEncoding = null) {
         await this.handshake();
 
         await this.send(new FullStatRequest()
@@ -65,6 +67,6 @@ export default class Query extends UDPClient {
             .write());
 
         this.signal?.throwIfAborted();
-        return new FullStatResponse().read(await this.readData());
+        return new FullStatResponse(useLegacyStringEncoding).read(await this.readData());
     }
 }

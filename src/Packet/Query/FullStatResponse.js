@@ -26,6 +26,16 @@ export default class FullStatResponse extends StatResponse {
     /** @type {string} */ version;
     /** @type {string} */ plugins;
     /** @type {string[]} */ players;
+    /** @type {?boolean} */ useLegacyEncoding;
+
+    /**
+     * @param {?boolean} useLegacyEncoding - Whether to use the legacy encoding method for strings.
+     * If null, it will be determined automatically.
+     */
+    constructor(useLegacyEncoding = null) {
+        super();
+        this.useLegacyEncoding = useLegacyEncoding;
+    }
 
     /**
      * @return {string[]}
@@ -101,7 +111,7 @@ export default class FullStatResponse extends StatResponse {
     /**
      * @param {Buffer} data
      * @param {number} offset
-     * @return {[Map<string, string>, number]}
+     * @return {[Map<string, Buffer>, number]}
      */
     readKeyValueSection(data, offset) {
         let values = new Map();
@@ -114,7 +124,7 @@ export default class FullStatResponse extends StatResponse {
 
             [value, offset] = this.readStringNTFollowedBy(data, offset, FullStatResponse.VALID_KEYS_WITH_PLAYERS);
 
-            values.set(key, value);
+            values.set(key.toString("ascii"), value);
         }
 
         return [values, offset];
@@ -123,7 +133,7 @@ export default class FullStatResponse extends StatResponse {
     /**
      * @param {Buffer} data
      * @param {number} offset
-     * @return {[string[], number]}
+     * @return {[Buffer[], number]}
      */
     readPlayers(data, offset) {
         let players = [];
@@ -141,6 +151,42 @@ export default class FullStatResponse extends StatResponse {
     }
 
     /**
+     * Minecraft switched to UTF-8 encoding in version 1.21.11
+     * @param {Buffer|string} version
+     * @return {boolean}
+     */
+    shouldUseLegacyStringEncoding(version) {
+        if (typeof version !== "string") {
+            version = version.toString("ascii");
+        }
+        let parts = version.split(".")
+            .map(s => parseInt(s))
+            .map(n => isNaN(n) ? 0 : n);
+
+        let modernVersion = [1, 21, 11];
+        return this.compareVersions(parts, modernVersion) < 0;
+    }
+
+    /**
+     *
+     * @param {number[]} a
+     * @param {number[]} b
+     * @return {number}
+     */
+    compareVersions(a, b) {
+        for (let i = 0; i < Math.max(a.length, b.length); i++) {
+            let partA = i < a.length ? a[i] : 0;
+            let partB = i < b.length ? b[i] : 0;
+            if (partA < partB) {
+                return -1;
+            } else if (partA > partB) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    /**
      * @inheritDoc
      */
     readPayload(data) {
@@ -150,6 +196,12 @@ export default class FullStatResponse extends StatResponse {
         }
 
         let [values, offset] = this.readKeyValueSection(data, this.constructor.START_PADDING.length);
+        let legacyEncoding = null;
+        if (this.useLegacyEncoding !== null) {
+            legacyEncoding = this.useLegacyEncoding;
+        } else if (values.has('version')) {
+            legacyEncoding = this.shouldUseLegacyStringEncoding(values.get('version'));
+        }
 
         let playerPadding = Buffer.from(data.buffer, data.byteOffset + offset, this.constructor.PLAYERS_PADDING.length);
         if (!playerPadding.equals(this.constructor.PLAYERS_PADDING)) {
@@ -164,33 +216,34 @@ export default class FullStatResponse extends StatResponse {
             throw new Error("Unexpected data after full stat response");
         }
 
-        this.gametype = values.get('gametype');
-        this.game_id = values.get('game_id');
-        this.version = values.get('version');
-        this.plugins = values.get('plugins');
-        this.map = values.get('map');
-        this.numplayers = parseInt(values.get('numplayers'));
-        this.maxplayers = parseInt(values.get('maxplayers'));
+        this.gametype = this.decodeString(values.get('gametype'), legacyEncoding);
+        this.game_id = this.decodeString(values.get('game_id'), legacyEncoding);
+        this.version = this.decodeString(values.get('version'), legacyEncoding);
+        this.plugins = this.decodeString(values.get('plugins'), legacyEncoding);
+        this.map = this.decodeString(values.get('map'), legacyEncoding);
+        this.numplayers = parseInt(this.decodeString(values.get('numplayers'), legacyEncoding));
+        this.maxplayers = parseInt(this.decodeString(values.get('maxplayers'), legacyEncoding));
         if (isNaN(this.numplayers) || isNaN(this.maxplayers)) {
             throw new ProtocolError("Player count is not a number");
         }
-        this.hostport = parseInt(values.get('hostport'));
-        this.hostip = values.get('hostip');
-        this.hostname = values.get('hostname');
-        this.players = players;
+        this.hostport = parseInt(this.decodeString(values.get('hostport'), legacyEncoding));
+        this.hostip = this.decodeString(values.get('hostip'), legacyEncoding);
+        this.hostname = this.decodeString(values.get('hostname'), legacyEncoding);
+        this.players = players.map(p => this.decodeString(p, legacyEncoding));
 
         return this;
     }
 
     /**
      * @param {Map<string, string>} values
+     * @param {boolean} legacyEncoding
      * @return {Buffer}
      */
-    writeKeyValueSection(values) {
+    writeKeyValueSection(values, legacyEncoding) {
         let parts = [];
         for (let [key, value] of values) {
-            parts.push(this.createStringNT(key));
-            parts.push(this.createStringNT(value));
+            parts.push(this.createStringNT(key, legacyEncoding));
+            parts.push(this.createStringNT(value, legacyEncoding));
         }
         parts.push(Buffer.alloc(1));
         return Buffer.concat(parts);
@@ -198,12 +251,13 @@ export default class FullStatResponse extends StatResponse {
 
     /**
      * @param {string[]} players
+     * @param {boolean} legacyEncoding
      * @return {Buffer}
      */
-    writePlayers(players) {
+    writePlayers(players, legacyEncoding) {
         let parts = [];
         for (let player of players) {
-            parts.push(this.createStringNT(player));
+            parts.push(this.createStringNT(player, legacyEncoding));
         }
         parts.push(Buffer.alloc(1));
         return Buffer.concat(parts);
@@ -213,6 +267,13 @@ export default class FullStatResponse extends StatResponse {
      * @inheritDoc
      */
     writePayload() {
+        let legacyEncoding = true;
+        if (this.useLegacyEncoding !== null) {
+            legacyEncoding = this.useLegacyEncoding;
+        } else if (this.version) {
+            legacyEncoding = this.shouldUseLegacyStringEncoding(this.version);
+        }
+
         let values = new Map([
             ['hostname', this.hostname || ''],
             ['gametype', this.gametype || ''],
@@ -228,9 +289,9 @@ export default class FullStatResponse extends StatResponse {
 
         return Buffer.concat([
             this.constructor.START_PADDING,
-            this.writeKeyValueSection(values),
+            this.writeKeyValueSection(values, legacyEncoding),
             this.constructor.PLAYERS_PADDING,
-            this.writePlayers(this.players)
+            this.writePlayers(this.players, legacyEncoding)
         ]);
     }
 }
