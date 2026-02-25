@@ -97,7 +97,6 @@ export default class JavaPing extends TCPSocket {
         }
 
         let response = await this.readPacket(LegacyKick);
-        console.log(response);
         let message = response.getMessage();
         if (message.startsWith("§1")) {
             return new LegacyStatus().fromPost14String(response.getMessage());
