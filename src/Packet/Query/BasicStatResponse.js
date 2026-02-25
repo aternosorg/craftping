@@ -40,17 +40,28 @@ export default class BasicStatResponse extends StatResponse {
             [hostip, offset] = this.readStringNT(data, offset);
         } while (offset < data.length);
 
-        this.hostname = this.decodeString(motd, this.useLegacyEncoding);
-        this.gametype = this.decodeString(gametype, this.useLegacyEncoding);
-        this.map = this.decodeString(map, this.useLegacyEncoding);
-        this.numplayers = parseInt(this.decodeString(numplayers, this.useLegacyEncoding));
-        this.maxplayers = parseInt(this.decodeString(maxplayers, this.useLegacyEncoding));
+        let legacyEncoding = this.useLegacyEncoding;
+        if (legacyEncoding === null) {
+            legacyEncoding = false;
+            for (let str of [motd, gametype, map, numplayers, maxplayers, hostip]) {
+                if (!this.isValidUtf8(str)) {
+                    legacyEncoding = true;
+                    break;
+                }
+            }
+        }
+
+        this.hostname = this.decodeString(motd, legacyEncoding);
+        this.gametype = this.decodeString(gametype, legacyEncoding);
+        this.map = this.decodeString(map, legacyEncoding);
+        this.numplayers = parseInt(this.decodeString(numplayers, legacyEncoding));
+        this.maxplayers = parseInt(this.decodeString(maxplayers, legacyEncoding));
         if (isNaN(this.numplayers) || isNaN(this.maxplayers)) {
             throw new ProtocolError("Player count is not a number");
         }
 
         this.hostport = hostport;
-        this.hostip = this.decodeString(hostip, this.useLegacyEncoding);
+        this.hostip = this.decodeString(hostip, legacyEncoding);
         return this;
     }
 
