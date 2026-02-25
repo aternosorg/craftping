@@ -3,8 +3,9 @@ import ProtocolError from "../../../Error/ProtocolError.js";
 
 export default class LegacyPingHostPluginMessage extends LegacyJavaPacket {
     static DEFAULT_PROTOCOL_VERSION = 74;
+    static DEFAULT_TYPE = 'MC|PingHost';
 
-    /** @type {string} */ type = 'MC|PingHost';
+    /** @type {string} */ type = this.constructor.DEFAULT_TYPE;
     /** @type {?number} */ protocolVersion = null;
     /** @type {string} */ hostname;
     /** @type {number} */ port;

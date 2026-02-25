@@ -70,7 +70,7 @@ export default class JavaPing extends TCPSocket {
     }
 
     /**
-     * @param {PingOptions} options
+     * @param {LegacyPingOptions} options
      * @return {Promise<LegacyStatus>}
      */
     async pingLegacyUniversal(options = {}) {
@@ -91,11 +91,13 @@ export default class JavaPing extends TCPSocket {
             await this.write(new LegacyPingHostPluginMessage()
                 .setProtocolVersion(options.protocolVersion ?? null)
                 .setHostname(options.hostname ?? this.address)
+                .setType(options.pingType ?? LegacyPingHostPluginMessage.DEFAULT_TYPE)
                 .setPort(options.port ?? this.port).write());
             this.signal?.throwIfAborted();
         }
 
         let response = await this.readPacket(LegacyKick);
+        console.log(response);
         let message = response.getMessage();
         if (message.startsWith("§1")) {
             return new LegacyStatus().fromPost14String(response.getMessage());

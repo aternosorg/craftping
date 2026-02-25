@@ -12,6 +12,11 @@ import * as net from "node:net";
  * @property {import("node:dns/promises").Resolver} [resolver] - The DNS resolver to use for resolving SRV records
  */
 
+/**
+ * @typedef {PingOptions} LegacyPingOptions
+ * @property {string} [pingType] - The type string to use in the legacy ping request, default "MC|PingHost"
+ */
+
 
 export default class JavaPingClient {
     /** @type {import("node:dns/promises").Resolver} */ resolver = new Resolver();
@@ -132,7 +137,7 @@ export default class JavaPingClient {
      *
      * @param {string} address
      * @param {number} port
-     * @param {PingOptions} options
+     * @param {LegacyPingOptions} options
      * @return {Promise<LegacyStatus>}
      */
     async pingLegacyUniversal(address, port, options = {}) {
